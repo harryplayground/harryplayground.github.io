@@ -3,118 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小一數學練習工具</title>
+    <title>HK小學數學練習器</title>
     <style>
-        body { font-family: 'Arial', sans-serif; text-align: center; padding: 20px; background-color: #f0f8ff; }
-        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); display: inline-block; width: 90%; max-width: 400px; }
-        h2 { color: #2c3e50; }
+        :root { --primary: #1976d2; --secondary: #424242; --success: #2e7d32; --error: #d32f2f; --bg: #f5f5f5; }
+        body { font-family: 'Arial', 'Microsoft JhengHei', sans-serif; background-color: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
+        .card { background: white; width: 100%; max-width: 450px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); position: relative; text-align: center; }
+        .hint-box { display: none; position: absolute; left: -230px; top: 50px; width: 200px; background: #fff9c4; border: 2px solid #fbc02d; padding: 15px; border-radius: 12px; text-align: left; font-size: 0.9rem; box-shadow: -5px 5px 15px rgba(0,0,0,0.1); z-index: 100; }
+        @media (max-width: 950px) { .hint-box { position: static; width: auto; margin-bottom: 15px; } }
         
-        /* 選單樣式 */
-        .menu { margin-bottom: 20px; }
-        select { padding: 10px; font-size: 1rem; border-radius: 5px; width: 100%; margin-bottom: 10px; }
+        h2 { color: var(--primary); margin-bottom: 20px; }
+        .setup-group { margin-bottom: 20px; display: flex; gap: 10px; }
+        select { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem; }
+        .question-text { font-size: 2.5rem; font-weight: bold; margin: 30px 0; color: #333; }
         
-        #question { font-size: 2.5rem; margin: 20px 0; font-weight: bold; color: #34495e; }
-        input { font-size: 1.5rem; width: 150px; text-align: center; margin-bottom: 20px; padding: 10px; border: 2px solid #bdc3c7; border-radius: 8px; }
+        /* 輸入框樣式 */
+        .standard-input { width: 80%; font-size: 1.5rem; padding: 12px; text-align: center; border: 2px solid #bdc3c7; border-radius: 10px; margin-bottom: 20px; }
         
-        .btn-check { font-size: 1.2rem; padding: 12px 24px; cursor: pointer; background-color: #27ae60; color: white; border: none; border-radius: 8px; width: 100%; }
-        .btn-next { font-size: 1.2rem; padding: 12px 24px; cursor: pointer; background-color: #2980b9; color: white; border: none; border-radius: 8px; width: 100%; margin-top: 10px; }
-        
-        #result { margin-top: 20px; font-size: 1.2rem; font-weight: bold; height: 1.5em; }
+        /* 貨幣方格專用樣式 */
+        .ans-container { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 20px; font-size: 1.2rem; font-weight: bold; }
+        .money-input { width: 60px; font-size: 1.5rem; padding: 8px; text-align: center; border: 2px solid #1976d2; border-radius: 8px; }
+
+        .btn { width: 100%; padding: 15px; font-size: 1.2rem; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-check { background-color: var(--success); color: white; }
+        .btn-next { background-color: var(--primary); color: white; display: none; }
+        #result { margin-top: 15px; font-size: 1.1rem; font-weight: bold; min-height: 1.5em; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2>🎒 小一數學練習</h2>
-        
-        <div class="menu">
-            <label for="topic">請選擇課題：</label>
-            <select id="topic" onchange="generateQuestion()">
-                <option value="一位數加法">一位數加法</option>
-                <option value="減法">減法 (18以內)</option>
-                <option value="兩位數加法">兩位數加法</option>
-                <option value="三個數的加法">三個數連加</option>
-                <option value="兩位數減法">兩位數減法</option>
-            </select>
-        </div>
-
-        <div id="question">載入中...</div>
-        <input type="number" id="answer" placeholder="答案" inputmode="numeric">
-        <br>
-        <button class="btn-check" onclick="checkAnswer()">提交答案</button>
-        <div id="result"></div>
-        <button class="btn-next" onclick="generateQuestion()">下一題 ➡️</button>
+<div class="card">
+    <div id="hintBox" class="hint-box"><strong>💡 提示：</strong><br><span id="hintText"></span></div>
+    <h2>🎒 數學練習器</h2>
+    <div class="setup-group">
+        <select id="gradeSelect" onchange="initTopics()">
+            <option value="P1">一年級 (P1)</option>
+            <option value="P2">二年級 (P2)</option>
+        </select>
+        <select id="topicSelect" onchange="resetGame()"></select>
     </div>
 
-    <script>
-        let currentAnswer = 0;
+    <div class="question-text" id="qArea">...</div>
 
-        // 這裡完全照抄你 Python 中的邏輯
-        function generateQuestion() {
-            const topic = document.getElementById('topic').value;
-            let qText = "";
-            let ans = 0;
+    <div id="normalAnsArea">
+        <input type="text" id="userIn" class="standard-input" placeholder="輸入數字" inputmode="numeric">
+    </div>
 
-            if (topic === "一位數加法") {
-                let a = Math.floor(Math.random() * 9) + 1;
-                let b = Math.floor(Math.random() * 9) + 1;
-                qText = `${a} + ${b}`;
-                ans = a + b;
-            } 
-            else if (topic === "減法") {
-                let a = Math.floor(Math.random() * 18) + 1;
-                let b = Math.floor(Math.random() * Math.min(a, 9)) + 1;
-                qText = `${a} - ${b}`;
-                ans = a - b;
-            } 
-            else if (topic === "兩位數加法") {
-                ans = Math.floor(Math.random() * 91) + 10; // 10-100
-                let a = Math.floor(Math.random() * (ans - 1)) + 1;
-                let b = ans - a;
-                qText = `${a} + ${b}`;
-            } 
-            else if (topic === "三個數的加法") {
-                ans = Math.floor(Math.random() * 91) + 10;
-                let a = Math.floor(Math.random() * (ans - 2)) + 1;
-                let b = Math.floor(Math.random() * (ans - a - 1)) + 1;
-                let c = ans - a - b;
-                qText = `${a} + ${b} + ${c}`;
-            } 
-            else if (topic === "兩位數減法") {
-                let a = Math.floor(Math.random() * 90) + 10;
-                let b = Math.floor(Math.random() * (a - 1)) + 1;
-                qText = `${a} - ${b}`;
-                ans = a - b;
-            }
+    <div id="moneyAnsArea" class="ans-container hidden"></div>
+    
+    <button id="checkBtn" class="btn btn-check" onclick="handleCheck()">提交答案</button>
+    <button id="nextBtn" class="btn btn-next" onclick="resetGame()">下一題 ➡️</button>
+    <div id="result"></div>
+</div>
 
-            currentAnswer = ans;
-            document.getElementById('question').innerText = qText + " = ?";
-            document.getElementById('answer').value = '';
-            document.getElementById('result').innerText = '';
-            document.getElementById('answer').focus();
-        }
+<script>
+    const curriculum = {
+        "P1": ["一位數加法", "減法", "兩位數加法", "三個數的加法", "兩位數減法"],
+        "P2": ["三位數加法", "三位數減法", "基本乘法", "貨幣計算(元角)", "三個數的加減混合"]
+    };
 
-        function checkAnswer() {
-            const userAnswer = parseInt(document.getElementById('answer').value);
-            const resultDiv = document.getElementById('result');
-            
-            if (isNaN(userAnswer)) {
-                resultDiv.innerText = "⚠️ 請輸入答案";
-                resultDiv.style.color = "orange";
-                return;
-            }
+    const hintData = {
+        "一位數加法": "試試看湊成10的方法，或者用手指輔助。",
+        "減法": "從大的數字往回數。",
+        "兩位數加法": "先算個位，如果滿 10 要記得進位。",
+        "三個數的加法": "可以先將前兩個數加起來，再加第三個。",
+        "兩位數減法": "如果不夠減，要跟十位借位。",
+        "基本乘法": "乘法是重複的加法，例如 2x3 是 2+2+2。",
+        "貨幣計算(元角)": "記住：10 角等於 1 元。例如 15 角就是 1 元 5 角。",
+        "三位數加法": "百位、十位、個位分別對齊相加。",
+        "三個數的加減混合": "按照從左到右的順序計算。"
+    };
 
-            if (userAnswer === currentAnswer) {
-                resultDiv.innerText = "✅ 答對了！你真棒！";
-                resultDiv.style.color = "#27ae60";
-            } else {
-                resultDiv.innerText = "❌ 答錯了，正確答案是 " + currentAnswer;
-                resultDiv.style.color = "#c0392b";
-            }
-        }
+    let currentAns = {}; 
+    let attempt = 0;
+    let currentTopicType = "normal";
 
-        // 網頁開啟後自動出第一題
+    function initTopics() {
+        const grade = document.getElementById('gradeSelect').value;
+        const tSelect = document.getElementById('topicSelect');
+        tSelect.innerHTML = "";
+        curriculum[grade].forEach(topic => {
+            let opt = document.createElement('option');
+            opt.value = topic; opt.innerText = topic;
+            tSelect.appendChild(opt);
+        });
+        resetGame();
+    }
+
+    function resetGame() {
+        attempt = 0;
+        document.getElementById('hintBox').style.display = 'none';
+        document.getElementById('result').innerText = '';
+        document.getElementById('userIn').disabled = false;
+        document.getElementById('userIn').value = '';
+        document.getElementById('checkBtn').style.display = 'block';
+        document.getElementById('nextBtn').style.display = 'none';
         generateQuestion();
-    </script>
+    }
+
+    function generateQuestion() {
+        const grade = document.getElementById('gradeSelect').value;
+        const topic = document.getElementById('topicSelect').value;
+        let q = "";
+        let a_val = ""; 
+
+        // 重設介面顯示
+        document.getElementById('normalAnsArea').style.display = 'block'; 
+        document.getElementById('moneyAnsArea').style.display = 'none';
+        currentTopicType = "normal";
+
+        if (grade === "P1") {
+            if (topic === "一位數加法") {
+                let n1 = Math.floor(Math.random() * 9) + 1, n2 = Math.floor(Math.random() * 9) + 1;
+                q = `${n1} + ${n2}`; a_val = (n1 + n2).toString();
+            } else if (topic === "減法") {
+                let n1 = Math.floor(Math.random() * 18) + 1;
+                let n2 = Math.floor(Math.random() * Math.min(n1, 9)) + 1;
+                q = `${n1} - ${n2}`; a_val = (n1 - n2).toString();
+            } else if (topic === "兩位數加法") {
+                let sum = Math.floor(Math.random() * 91) + 10;
+                let n1 = Math.floor(Math.random() * (sum - 1)) + 1;
+                q = `${n1} + ${sum - n1}`; a_val = sum.toString();
+            } else if (topic === "三個數的加法") {
+                let sum = Math.floor(Math.random() * 91) + 10;
+                let n1 = Math.floor(Math.random() * (sum - 2)) + 1;
+                let n2 = Math.floor(Math.random() * (sum - n1 - 1)) + 1;
+                q = `${n1} + ${n2} + ${sum - n1 - n2}`; a_val = sum.toString();
+            } else if (topic === "兩位數減法") {
+                let n1 = Math.floor(Math.random() * 90) + 10, n2 = Math.floor(Math.random() * (n1 - 1)) + 1;
+                q = `${n1} - ${n2}`; a_val = (n1 - n2).toString();
+            }
+            currentAns = { val: a_val, type: 'normal' };
+        } 
+        else if (grade === "P2") {
+            if (topic === "三位數加法") {
+                let n1 = Math.floor(Math.random() * 800) + 100, n2 = Math.floor(Math.random() * (999 - n1)) + 1;
+                q = `${n1} + ${n2}`; currentAns = { val: (n1 + n2).toString(), type: 'normal' };
+            } else if (topic === "三位數減法") {
+                let n1 = Math.floor(Math.random() * 900) + 100, n2 = Math.floor(Math.random() * (n1 - 100)) + 1;
+                q = `${n1} - ${n2}`; currentAns = { val: (n1 - n2).toString(), type: 'normal' };
+            } else if (topic === "基本乘法") {
+                let n1 = Math.floor(Math.random() * 8) + 2, n2 = Math.floor(Math.random() * 9) + 1;
+                q = `${n1} × ${n2}`; currentAns = { val: (n1 * n2).toString(), type: 'normal' };
+            } else if (topic === "貨幣計算(元角)") {
+                currentTopicType = "money";
+                document.getElementById('normalAnsArea').style.display = 'none'; 
+                document.getElementById('moneyAnsArea').style.display = 'flex';
+                const subType = Math.random() > 0.5 ? 'toYuanJiao' : 'toCents';
+                let cents = Math.floor(Math.random() * 89) + 11; 
+                let yuan = Math.floor(cents / 10), jiao = cents % 10;
+                const mArea = document.getElementById('moneyAnsArea');
+                if (subType === 'toYuanJiao') {
+                    q = `將 ${cents} 角換算為：`;
+                    mArea.innerHTML = `<input type="number" id="ansYuan" class="money-input"> 元 <input type="number" id="ansJiao" class="money-input"> 角`;
+                    currentAns = { yuan: yuan, jiao: jiao, type: 'yj' };
+                } else {
+                    q = `將 ${yuan} 元 ${jiao} 角換算為：`;
+                    mArea.innerHTML = `<input type="number" id="ansCents" class="money-input"> 角`;
+                    currentAns = { cents: cents, type: 'c' };
+                }
+            } else if (topic === "三個數的加減混合") {
+                let n1 = Math.floor(Math.random() * 500) + 100, n2 = Math.floor(Math.random() * 200) + 10, n3 = Math.floor(Math.random() * 50) + 1;
+                let res = Math.random() > 0.5 ? (n1 + n2 - n3) : (n1 - n2 + n3);
+                q = Math.random() > 0.5 ? `${n1} + ${n2} - ${n3}` : `${n1} - ${n2} + ${n3}`;
+                currentAns = { val: res.toString(), type: 'normal' };
+            }
+        }
+
+        document.getElementById('qArea').innerText = (currentTopicType === "money") ? q : q + " = ?";
+        
+        // 自動聚焦
+        setTimeout(() => {
+            if (currentTopicType === "normal") {
+                document.getElementById('userIn').focus();
+            } else {
+                const first = document.querySelector('.money-input');
+                if (first) first.focus();
+            }
+        }, 100);
+    }
+
+    function handleCheck() {
+        let isCorrect = false;
+        const resDiv = document.getElementById('result');
+        const topic = document.getElementById('topicSelect').value; // 取得目前課題名稱
+
+        if (currentTopicType === "money") {
+            if (currentAns.type === 'yj') {
+                let uYuan = parseInt(document.getElementById('ansYuan').value) || 0;
+                let uJiao = parseInt(document.getElementById('ansJiao').value) || 0;
+                isCorrect = (uYuan === currentAns.yuan && uJiao === currentAns.jiao);
+            } else {
+                let uCents = parseInt(document.getElementById('ansCents').value) || 0;
+                isCorrect = (uCents === currentAns.cents);
+            }
+        } else {
+            let uVal = document.getElementById('userIn').value.trim();
+            isCorrect = (uVal === currentAns.val);
+        }
+
+        if (isCorrect) {
+            resDiv.innerText = "✅ 答對了！";
+            resDiv.style.color = "var(--success)";
+            showNextBtn();
+        } else {
+            attempt++;
+            if (attempt === 1) {
+                resDiv.innerText = "❌ 錯誤，請補答一次！";
+                resDiv.style.color = "orange";
+                document.getElementById('hintText').innerText = hintData[topic] || "再細心算一次喔！";
+                document.getElementById('hintBox').style.display = 'block';
+                
+                // 清空輸入
+                if (currentTopicType === "money") {
+                    document.querySelectorAll('.money-input').forEach(i => i.value = '');
+                } else {
+                    document.getElementById('userIn').value = '';
+                }
+            } else {
+                let correctStr = (currentTopicType === "money") ? 
+                    (currentAns.type === 'yj' ? `${currentAns.yuan}元${currentAns.jiao}角` : `${currentAns.cents}角`) : 
+                    currentAns.val;
+                resDiv.innerText = `❌ 正確答案是：${correctStr}`;
+                resDiv.style.color = "var(--error)";
+                showNextBtn();
+            }
+        }
+    }
+
+    function showNextBtn() {
+        document.querySelectorAll('input').forEach(i => i.disabled = true);
+        document.getElementById('checkBtn').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'block';
+    }
+
+    window.onload = initTopics;
+</script>
 </body>
 </html>
