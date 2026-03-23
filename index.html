@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小一數學練習工具</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; text-align: center; padding: 20px; background-color: #f0f8ff; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); display: inline-block; width: 90%; max-width: 400px; }
+        h2 { color: #2c3e50; }
+        
+        /* 選單樣式 */
+        .menu { margin-bottom: 20px; }
+        select { padding: 10px; font-size: 1rem; border-radius: 5px; width: 100%; margin-bottom: 10px; }
+        
+        #question { font-size: 2.5rem; margin: 20px 0; font-weight: bold; color: #34495e; }
+        input { font-size: 1.5rem; width: 150px; text-align: center; margin-bottom: 20px; padding: 10px; border: 2px solid #bdc3c7; border-radius: 8px; }
+        
+        .btn-check { font-size: 1.2rem; padding: 12px 24px; cursor: pointer; background-color: #27ae60; color: white; border: none; border-radius: 8px; width: 100%; }
+        .btn-next { font-size: 1.2rem; padding: 12px 24px; cursor: pointer; background-color: #2980b9; color: white; border: none; border-radius: 8px; width: 100%; margin-top: 10px; }
+        
+        #result { margin-top: 20px; font-size: 1.2rem; font-weight: bold; height: 1.5em; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>🎒 小一數學練習</h2>
+        
+        <div class="menu">
+            <label for="topic">請選擇課題：</label>
+            <select id="topic" onchange="generateQuestion()">
+                <option value="一位數加法">一位數加法</option>
+                <option value="減法">減法 (18以內)</option>
+                <option value="兩位數加法">兩位數加法</option>
+                <option value="三個數的加法">三個數連加</option>
+                <option value="兩位數減法">兩位數減法</option>
+            </select>
+        </div>
+
+        <div id="question">載入中...</div>
+        <input type="number" id="answer" placeholder="答案" inputmode="numeric">
+        <br>
+        <button class="btn-check" onclick="checkAnswer()">提交答案</button>
+        <div id="result"></div>
+        <button class="btn-next" onclick="generateQuestion()">下一題 ➡️</button>
+    </div>
+
+    <script>
+        let currentAnswer = 0;
+
+        // 這裡完全照抄你 Python 中的邏輯
+        function generateQuestion() {
+            const topic = document.getElementById('topic').value;
+            let qText = "";
+            let ans = 0;
+
+            if (topic === "一位數加法") {
+                let a = Math.floor(Math.random() * 9) + 1;
+                let b = Math.floor(Math.random() * 9) + 1;
+                qText = `${a} + ${b}`;
+                ans = a + b;
+            } 
+            else if (topic === "減法") {
+                let a = Math.floor(Math.random() * 18) + 1;
+                let b = Math.floor(Math.random() * Math.min(a, 9)) + 1;
+                qText = `${a} - ${b}`;
+                ans = a - b;
+            } 
+            else if (topic === "兩位數加法") {
+                ans = Math.floor(Math.random() * 91) + 10; // 10-100
+                let a = Math.floor(Math.random() * (ans - 1)) + 1;
+                let b = ans - a;
+                qText = `${a} + ${b}`;
+            } 
+            else if (topic === "三個數的加法") {
+                ans = Math.floor(Math.random() * 91) + 10;
+                let a = Math.floor(Math.random() * (ans - 2)) + 1;
+                let b = Math.floor(Math.random() * (ans - a - 1)) + 1;
+                let c = ans - a - b;
+                qText = `${a} + ${b} + ${c}`;
+            } 
+            else if (topic === "兩位數減法") {
+                let a = Math.floor(Math.random() * 90) + 10;
+                let b = Math.floor(Math.random() * (a - 1)) + 1;
+                qText = `${a} - ${b}`;
+                ans = a - b;
+            }
+
+            currentAnswer = ans;
+            document.getElementById('question').innerText = qText + " = ?";
+            document.getElementById('answer').value = '';
+            document.getElementById('result').innerText = '';
+            document.getElementById('answer').focus();
+        }
+
+        function checkAnswer() {
+            const userAnswer = parseInt(document.getElementById('answer').value);
+            const resultDiv = document.getElementById('result');
+            
+            if (isNaN(userAnswer)) {
+                resultDiv.innerText = "⚠️ 請輸入答案";
+                resultDiv.style.color = "orange";
+                return;
+            }
+
+            if (userAnswer === currentAnswer) {
+                resultDiv.innerText = "✅ 答對了！你真棒！";
+                resultDiv.style.color = "#27ae60";
+            } else {
+                resultDiv.innerText = "❌ 答錯了，正確答案是 " + currentAnswer;
+                resultDiv.style.color = "#c0392b";
+            }
+        }
+
+        // 網頁開啟後自動出第一題
+        generateQuestion();
+    </script>
+</body>
+</html>
