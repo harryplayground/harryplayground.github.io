@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HK小學數學練習器 - 完整專業版</title>
+    <title>HK小學數學練習器 - 專業完整版</title>
     <style>
         :root { --primary: #1976d2; --secondary: #424242; --success: #2e7d32; --error: #d32f2f; --bg: #f5f5f5; }
         body { font-family: 'Arial', 'Microsoft JhengHei', sans-serif; background-color: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
@@ -39,7 +39,7 @@
 
 <div class="card">
     <div id="hintBox" class="hint-box"><strong>💡 提示：</strong><br><span id="hintText"></span></div>
-    <h2>🎒 數學練習器 (專業整合版)</h2>
+    <h2>🎒 數學練習器 (專業版)</h2>
     
     <div class="setup-group">
         <select id="gradeSelect" onchange="initTopics()">
@@ -84,15 +84,12 @@
         "一位數加法": "試試看湊成10的方法，或者用手指輔助。",
         "減法": "從大的數字往回數。",
         "兩位數加法": "先算個位，如果滿 10 要記得進位。",
-        "三個數的加法": "可以先將前兩個數加起來，再加第三個。",
         "兩位數減法": "如果不夠減，要跟十位借位。",
         "基本乘法": "乘法是重複的加法，例如 2x3 是 2+2+2。",
         "貨幣計算(元角)": "10 角等於 1 元。例如 15 角就是 1 元 5 角。",
-        "三位數加法": "百位、十位、個位分別對齊相加。",
-        "三個數的加減混合": "按照從左到右的順序計算。",
         "乘法(兩位數 × 一位數)": "從個位乘起，注意進位。",
         "除法(兩位數 ÷ 一位數)": "從最高位開始除，餘數必須比除數小。",
-        "四則運算(圓括號)": "有括號，先算括號！",
+        "四則運算(圓括號)": "有括號，先算括號！就算裡面是減法也要先算。",
         "四則運算(乘加乘減混合)": "先乘除，後加減，有括號先算括號。",
         "分數加法": "分母不動，分子相加。若分子等於分母，答案是 1。"
     };
@@ -146,16 +143,13 @@
                 let n1 = Math.floor(Math.random() * 9) + 1, n2 = Math.floor(Math.random() * 9) + 1;
                 q = `${n1} + ${n2}`; currentAns = { val: (n1 + n2).toString() };
             } else if (topic === "減法") {
-                let n1 = Math.floor(Math.random() * 18) + 1;
-                let n2 = Math.floor(Math.random() * Math.min(n1, 9)) + 1;
+                let n1 = Math.floor(Math.random() * 18) + 1, n2 = Math.floor(Math.random() * Math.min(n1, 9)) + 1;
                 q = `${n1} - ${n2}`; currentAns = { val: (n1 - n2).toString() };
             } else if (topic === "兩位數加法") {
-                let sum = Math.floor(Math.random() * 91) + 10;
-                let n1 = Math.floor(Math.random() * (sum - 1)) + 1;
+                let sum = Math.floor(Math.random() * 91) + 10, n1 = Math.floor(Math.random() * (sum - 1)) + 1;
                 q = `${n1} + ${sum - n1}`; currentAns = { val: sum.toString() };
             } else if (topic === "三個數的加法") {
-                let sum = Math.floor(Math.random() * 91) + 10;
-                let n1 = Math.floor(Math.random() * (sum - 2)) + 1, n2 = Math.floor(Math.random() * (sum - n1 - 1)) + 1;
+                let sum = Math.floor(Math.random() * 91) + 10, n1 = Math.floor(Math.random() * (sum - 2)) + 1, n2 = Math.floor(Math.random() * (sum - n1 - 1)) + 1;
                 q = `${n1} + ${n2} + ${sum - n1 - n2}`; currentAns = { val: sum.toString() };
             } else if (topic === "兩位數減法") {
                 let n1 = Math.floor(Math.random() * 90) + 10, n2 = Math.floor(Math.random() * (n1 - 1)) + 1;
@@ -210,8 +204,15 @@
                     currentAns = { q: quo, r: rem };
                 }
             } else if (topic === "四則運算(圓括號)") {
-                let a = Math.floor(Math.random()*15)+5, b = Math.floor(Math.random()*15)+5, c = Math.floor(Math.random()*6)+2;
-                q = `(${a} + ${b}) × ${c}`; currentAns = { val: ((a+b)*c).toString() };
+                let a = Math.floor(Math.random()*20)+10, b = Math.floor(Math.random()*9)+2, c = Math.floor(Math.random()*7)+2;
+                if (Math.random() > 0.5) {
+                    // (a + b) * c
+                    q = `(${a} + ${b}) × ${c}`; currentAns = { val: ((a+b)*c).toString() };
+                } else {
+                    // (a - b) * c, 確保 a > b
+                    while(a <= b) { a = Math.floor(Math.random()*20)+10; }
+                    q = `(${a} - ${b}) × ${c}`; currentAns = { val: ((a-b)*c).toString() };
+                }
             } else if (topic === "四則運算(加減混合)") {
                 let a = Math.floor(Math.random()*400)+200, b = Math.floor(Math.random()*100)+50, c = Math.floor(Math.random()*40)+10;
                 q = `${a} - (${b} + ${c})`; currentAns = { val: (a-(b+c)).toString() };
