@@ -22,7 +22,7 @@
         .frac-line { border-top: 3px solid #333; width: 100%; margin: 2px 0; }
 
         .standard-input { width: 80%; font-size: 1.5rem; padding: 12px; text-align: center; border: 2px solid #bdc3c7; border-radius: 10px; margin-bottom: 20px; }
-        .ans-container { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 20px; font-size: 1.2rem; font-weight: bold; }
+        .ans-container { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 20px; font-size: 1.2rem; font-weight: bold; flex-wrap: wrap; }
         .money-input { width: 85px; font-size: 1.5rem; padding: 8px; text-align: center; border: 2px solid #1976d2; border-radius: 8px; }
 
         .fraction-input-group { display: flex; flex-direction: column; align-items: center; }
@@ -33,19 +33,23 @@
         .btn-check { background-color: var(--success); color: white; }
         .btn-next { background-color: var(--primary); color: white; display: none; }
         #result { margin-top: 15px; font-size: 1.1rem; font-weight: bold; min-height: 1.5em; }
+        
+        /* P4 專用分步驟樣式 */
+        .step-container { font-size: 1.3rem; background: #f9f9f9; padding: 15px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 20px; width: 100%; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div id="hintBox" class="hint-box"><strong>💡 提示：</strong><br><span id="hintText"></span></div>
-    <h2>🎒 數學練習器 (專業版)</h2>
+    <h2>🎒 數學練習器 (P1-P4 完整版)</h2>
     
     <div class="setup-group">
         <select id="gradeSelect" onchange="initTopics()">
             <option value="P1">一年級 (P1)</option>
             <option value="P2">二年級 (P2)</option>
-            <option value="P3" selected>三年級 (P3)</option>
+            <option value="P3">三年級 (P3)</option>
+            <option value="P4" selected>四年級 (P4)</option>
         </select>
         <select id="topicSelect" onchange="resetGame()"></select>
     </div>
@@ -77,6 +81,12 @@
             "四則運算(兩個括號)",
             "分數加法",
             "分數減法"
+        ],
+        "P4": [
+            "除法(兩位數除數)",
+            "乘法分配性質(分步驟填空)",
+            "小數加減混合",
+            "同分母加減混合"
         ]
     };
 
@@ -85,14 +95,20 @@
         "基本乘法": "乘法是重複的加法，例如 2x3 是 2+2+2。",
         "除法(三位數 ÷ 一位數)": "連除法可以從左到右依次計算。",
         "四則運算(乘加乘減混合)": "先乘除，後加減。如果有括號，要先算括號裡面的喔！",
-        "四則運算(加減混合)": "三位或四位數加減，記得對齊數位，借位要小心。",
-        "四則運算(兩個括號)": "分別算出兩個括號內的結果，最後再相乘。"
+        "小數加減混合": "記得對齊小數點，如果有括號要先算括號！",
+        "同分母加減混合": "分母保持不變，只需計算分子的加減。最後記得約至最簡分數。",
+        "乘法分配性質(分步驟填空)": "試著找出相同的數字（公因子），提出括號外。"
     };
 
     let currentAns = {}; 
     let attempt = 0;
     let currentTopicType = "normal";
     let step = 1;
+
+    // GCD 函數用於約簡分數
+    function getGCD(a, b) {
+        return b === 0 ? a : getGCD(b, a % b);
+    }
 
     function initTopics() {
         const grade = document.getElementById('gradeSelect').value;
@@ -114,12 +130,16 @@
         document.getElementById('nextBtn').style.display = 'none';
         document.getElementById('normalAnsArea').style.display = 'block';
         document.getElementById('specialAnsArea').style.display = 'none';
+        document.getElementById('extraOneArea').style.display = 'none';
         document.querySelectorAll('input').forEach(i => { i.disabled = false; i.value = ''; });
         generateQuestion();
     }
 
-    function getFracHtml(n, d) {
-        return `<span class="frac-display"><span>${n}</span><div class="frac-line"></div><span>${d}</span></span>`;
+    function getFracHtml(n, d, w = 0) {
+        let res = "";
+        if (w > 0) res += `<span>${w}</span>`;
+        res += `<span class="frac-display"><span>${n}</span><div class="frac-line"></div><span>${d}</span></span>`;
+        return res;
     }
 
     function generateQuestion() {
@@ -200,90 +220,89 @@
                 }
             }
             else if (topic === "除法(三位數 ÷ 一位數)") {
-                // 新增 a/b/c 題型
                 let b = Math.floor(Math.random()*7)+2;
                 let c = Math.floor(Math.random()*3)+2;
                 let finalRes = Math.floor(Math.random()*40)+10;
-                let a = finalRes * b * c; // 確保整除且 a 是三位數
-                if (a > 999) a = Math.floor(Math.random()*800)+100; // 如果爆位則隨機一個
-                
-                // 重新計算正確答案以相容隨機 a
+                let a = finalRes * b * c;
+                if (a > 999) a = Math.floor(Math.random()*800)+100;
                 let res = Math.floor(a / b / c);
                 q = `${a} ÷ ${b} ÷ ${c}`;
                 currentAns = { val: res.toString() };
             }
             else if (topic === "四則運算(乘加乘減混合)") {
-                let a = Math.floor(Math.random()*90)+10; // 兩位數
-                let b = Math.floor(Math.random()*8)+2;  // 一位數
-                let c = Math.floor(Math.random()*50)+10;
+                let a = Math.floor(Math.random()*90)+10, b = Math.floor(Math.random()*8)+2, c = Math.floor(Math.random()*50)+10;
                 let subType = Math.floor(Math.random()*4);
-                
-                if (subType === 0) { // a*b+c
-                    q = `${a} × ${b} + ${c}`; currentAns = { val: (a*b+c).toString() };
-                } else if (subType === 1) { // a*b-c
-                    while(a*b <= c) { c = Math.floor(Math.random()*50)+10; }
-                    q = `${a} × ${b} - ${c}`; currentAns = { val: (a*b-c).toString() };
-                } else if (subType === 2) { // (a+b)*c (c是一位數)
-                    c = Math.floor(Math.random()*8)+2;
-                    q = `(${a} + ${b}) × ${c}`; currentAns = { val: ((a+b)*c).toString() };
-                } else { // (a-b)*c (c是一位數)
-                    c = Math.floor(Math.random()*8)+2;
-                    if(a < b) [a, b] = [b, a];
-                    q = `(${a} - ${b}) × ${c}`; currentAns = { val: ((a-b)*c).toString() };
-                }
+                if (subType === 0) { q = `${a} × ${b} + ${c}`; currentAns = { val: (a*b+c).toString() }; } 
+                else if (subType === 1) { while(a*b <= c) { c = Math.floor(Math.random()*50)+10; } q = `${a} × ${b} - ${c}`; currentAns = { val: (a*b-c).toString() }; } 
+                else if (subType === 2) { c = Math.floor(Math.random()*8)+2; q = `(${a} + ${b}) × ${c}`; currentAns = { val: ((a+b)*c).toString() }; } 
+                else { c = Math.floor(Math.random()*8)+2; if(a < b) [a, b] = [b, a]; q = `(${a} - ${b}) × ${c}`; currentAns = { val: ((a-b)*c).toString() }; }
             }
             else if (topic === "四則運算(加減混合)") {
-                // 全是三位數或四位數
-                let a = Math.floor(Math.random()*8000)+1000;
-                let b = Math.floor(Math.random()*800)+100;
-                let c = Math.floor(Math.random()*800)+100;
+                let a = Math.floor(Math.random()*8000)+1000, b = Math.floor(Math.random()*800)+100, c = Math.floor(Math.random()*800)+100;
                 let subType = Math.floor(Math.random()*5);
-                
-                if(subType === 0) { // a+b-c
-                    q = `${a} + ${b} - ${c}`; currentAns = { val: (a+b-c).toString() };
-                } else if(subType === 1) { // a-b+c
-                    q = `${a} - ${b} + ${c}`; currentAns = { val: (a-b+c).toString() };
-                } else if(subType === 2) { // a+(b-c)
-                    if(b < c) [b, c] = [c, b];
-                    q = `${a} + (${b} - ${c})`; currentAns = { val: (a+(b-c)).toString() };
-                } else if(subType === 3) { // a-(b+c)
-                    while(a <= (b+c)) { a += 1000; }
-                    q = `${a} - (${b} + ${c})`; currentAns = { val: (a-(b+c)).toString() };
-                } else { // a-(b-c)
-                    if(b < c) [b, c] = [c, b];
-                    q = `${a} - (${b} - ${c})`; currentAns = { val: (a-(b-c)).toString() };
-                }
+                if(subType === 0) { q = `${a} + ${b} - ${c}`; currentAns = { val: (a+b-c).toString() }; } 
+                else if(subType === 1) { q = `${a} - ${b} + ${c}`; currentAns = { val: (a-b+c).toString() }; } 
+                else if(subType === 2) { if(b < c) [b, c] = [c, b]; q = `${a} + (${b} - ${c})`; currentAns = { val: (a+(b-c)).toString() }; } 
+                else if(subType === 3) { while(a <= (b+c)) { a += 1000; } q = `${a} - (${b} + ${c})`; currentAns = { val: (a-(b+c)).toString() }; } 
+                else { if(b < c) [b, c] = [c, b]; q = `${a} - (${b} - ${c})`; currentAns = { val: (a-(b-c)).toString() }; }
             }
             else if (topic === "四則運算(兩個括號)") {
-                let a = Math.floor(Math.random()*20)+10, b = Math.floor(Math.random()*9)+2;
-                let c = Math.floor(Math.random()*15)+5, d = Math.floor(Math.random()*4)+2;
+                let a = Math.floor(Math.random()*20)+10, b = Math.floor(Math.random()*9)+2, c = Math.floor(Math.random()*15)+5, d = Math.floor(Math.random()*4)+2;
                 let subType = Math.floor(Math.random()*4);
-                
-                if(subType === 0) { // (a+b)*(c+d)
-                    q = `(${a} + ${b}) × (${c} + ${d})`; currentAns = { val: ((a+b)*(c+d)).toString() };
-                } else if(subType === 1) { // (a+b)*(c-d)
-                    q = `(${a} + ${b}) × (${c} - ${d})`; currentAns = { val: ((a+b)*(c-d)).toString() };
-                } else if(subType === 2) { // (a-b)*(c+d)
-                    if(a < b) [a, b] = [b, a];
-                    q = `(${a} - ${b}) × (${c} + ${d})`; currentAns = { val: ((a-b)*(c+d)).toString() };
-                } else { // (a-b)*(c-d)
-                    if(a < b) [a, b] = [b, a];
-                    q = `(${a} - ${b}) × (${c} - ${d})`; currentAns = { val: ((a-b)*(c-d)).toString() };
-                }
+                if(subType === 0) { q = `(${a} + ${b}) × (${c} + ${d})`; currentAns = { val: ((a+b)*(c+d)).toString() }; } 
+                else if(subType === 1) { q = `(${a} + ${b}) × (${c} - ${d})`; currentAns = { val: ((a+b)*(c-d)).toString() }; } 
+                else if(subType === 2) { if(a < b) [a, b] = [b, a]; q = `(${a} - ${b}) × (${c} + ${d})`; currentAns = { val: ((a-b)*(c+d)).toString() }; } 
+                else { if(a < b) [a, b] = [b, a]; q = `(${a} - ${b}) × (${c} - ${d})`; currentAns = { val: ((a-b)*(c-d)).toString() }; }
             }
             else if (topic.includes("分數")) {
                 currentTopicType = "fraction";
                 nArea.style.display = 'none'; sArea.style.display = 'flex';
                 let den = Math.floor(Math.random()*7)+3, n1, n2, res;
-                if (topic === "分數加法") {
-                    n1 = Math.floor(Math.random()*(den-1))+1; n2 = Math.floor(Math.random()*(den-n1))+1; res = n1 + n2;
-                    q = `${getFracHtml(n1, den)} + ${getFracHtml(n2, den)}`;
-                } else {
-                    n1 = Math.floor(Math.random()*(den-2))+2; n2 = Math.floor(Math.random()*(n1-1))+1; res = n1 - n2;
-                    q = `${getFracHtml(n1, den)} - ${getFracHtml(n2, den)}`;
-                }
+                if (topic === "分數加法") { n1 = Math.floor(Math.random()*(den-1))+1; n2 = Math.floor(Math.random()*(den-n1))+1; res = n1 + n2; q = `${getFracHtml(n1, den)} + ${getFracHtml(n2, den)}`; } 
+                else { n1 = Math.floor(Math.random()*(den-2))+2; n2 = Math.floor(Math.random()*(n1-1))+1; res = n1 - n2; q = `${getFracHtml(n1, den)} - ${getFracHtml(n2, den)}`; }
                 sArea.innerHTML = `<div class="fraction-input-group"><input type="number" id="ansNum" class="money-input"><div class="frac-input-line"></div><input type="number" id="ansDen" class="money-input"></div><div id="extraOneArea">＝ <input type="number" id="finalOne" class="money-input"></div>`;
                 currentAns = { n: res, d: den, isOne: (res === den) };
+            }
+        }
+        else if (grade === "P4") {
+            if (topic === "除法(兩位數除數)") {
+                let n1 = Math.floor(Math.random() * 800) + 100, n2 = Math.floor(Math.random() * 89) + 10;
+                let quo = Math.floor(n1 / n2), rem = n1 % n2;
+                q = `${n1} ÷ ${n2}`;
+                currentTopicType = "division";
+                nArea.style.display = 'none'; sArea.style.display = 'flex';
+                sArea.innerHTML = `商：<input type="number" id="ansQ" class="money-input"> 餘：<input type="number" id="ansR" class="money-input">`;
+                currentAns = { q: quo, r: rem };
+            }
+            else if (topic === "乘法分配性質(分步驟填空)") {
+                currentTopicType = "distributive";
+                nArea.style.display = 'none'; sArea.style.display = 'flex';
+                let a = Math.floor(Math.random() * 20) + 11, b = Math.floor(Math.random() * 15) + 2, c = 20 - b;
+                q = `${a} × ${b} + ${a} × ${c}`;
+                sArea.innerHTML = `<div class="step-container">${a} × ( <input type="number" id="step1" class="money-input"> + <input type="number" id="step2" class="money-input"> ) = <input type="number" id="finalAns" class="money-input" style="width:120px"></div>`;
+                currentAns = { a: a, b: b, c: c, val: (a * (b + c)).toString() };
+            }
+            else if (topic === "小數加減混合") {
+                let a = (Math.random() * 50 + 10).toFixed(2);
+                let b = (Math.random() * 5 + 1).toFixed(2);
+                let c = (Math.random() * 5 + 1).toFixed(2);
+                let subType = Math.floor(Math.random() * 4);
+                if (subType === 0) { q = `${a} + ${b} - ${c}`; currentAns = { val: (parseFloat(a) + parseFloat(b) - parseFloat(c)).toFixed(2) }; }
+                else if (subType === 1) { q = `${a} - ${b} + ${c}`; currentAns = { val: (parseFloat(a) - parseFloat(b) + parseFloat(c)).toFixed(2) }; }
+                else if (subType === 2) { q = `${a} - (${b} + ${c})`; currentAns = { val: (parseFloat(a) - (parseFloat(b) + parseFloat(c))).toFixed(2) }; }
+                else { q = `${a} - (${b} - ${c})`; currentAns = { val: (parseFloat(a) - (parseFloat(b) - parseFloat(c))).toFixed(2) }; }
+                currentAns.val = parseFloat(currentAns.val).toString(); // 去掉末尾不必要的0
+            }
+            else if (topic === "同分母加減混合") {
+                currentTopicType = "fraction_p4";
+                nArea.style.display = 'none'; sArea.style.display = 'flex';
+                let den = Math.floor(Math.random() * 18) + 3;
+                let n1 = Math.floor(Math.random() * 10) + 5, n2 = Math.floor(Math.random() * 4) + 1, n3 = Math.floor(Math.random() * 4) + 1;
+                q = `${getFracHtml(n1, den)} - ${getFracHtml(n2, den)} + ${getFracHtml(n3, den)}`;
+                let resN = n1 - n2 + n3;
+                let gcd = getGCD(resN, den);
+                currentAns = { w: Math.floor((resN/gcd)/(den/gcd)), n: (resN/gcd) % (den/gcd), d: den/gcd };
+                sArea.innerHTML = `答案(最簡)：<input type="number" id="p4w" class="money-input" placeholder="整數"> <div class="fraction-input-group"><input type="number" id="p4n" class="money-input"><div class="frac-input-line"></div><input type="number" id="p4d" class="money-input"></div>`;
             }
         }
 
@@ -296,28 +315,37 @@
 
     function handleCheck() {
         let isCorrect = false;
+        let isNotSimplified = false;
         const resDiv = document.getElementById('result');
         const topic = document.getElementById('topicSelect').value;
 
         if (currentTopicType === "money") {
-            if (currentAns.type === 'yj') {
-                isCorrect = (parseInt(document.getElementById('ansYuan').value) === currentAns.yuan && parseInt(document.getElementById('ansJiao').value) === currentAns.jiao);
-            } else { isCorrect = (parseInt(document.getElementById('ansCents').value) === currentAns.cents); }
-        } else if (currentTopicType === "division") {
+            if (currentAns.type === 'yj') isCorrect = (parseInt(document.getElementById('ansYuan').value) === currentAns.yuan && parseInt(document.getElementById('ansJiao').value) === currentAns.jiao);
+            else isCorrect = (parseInt(document.getElementById('ansCents').value) === currentAns.cents);
+        } 
+        else if (currentTopicType === "division") {
             isCorrect = (parseInt(document.getElementById('ansQ').value) === currentAns.q && parseInt(document.getElementById('ansR').value) === currentAns.r);
-        } else if (currentTopicType === "fraction") {
+        } 
+        else if (currentTopicType === "distributive") {
+            let u1 = parseInt(document.getElementById('step1').value), u2 = parseInt(document.getElementById('step2').value), uF = document.getElementById('finalAns').value;
+            isCorrect = ((u1 === currentAns.b && u2 === currentAns.c) || (u1 === currentAns.c && u2 === currentAns.b)) && uF === currentAns.val;
+        }
+        else if (currentTopicType === "fraction") {
             let uN = parseInt(document.getElementById('ansNum').value), uD = parseInt(document.getElementById('ansDen').value);
             if (uD !== 0 && (uN / uD) === (currentAns.n / currentAns.d)) {
                 if (currentAns.isOne) {
-                    if (step === 1) {
-                        document.getElementById('extraOneArea').style.display = 'flex';
-                        resDiv.innerText = "數值正確！最後請換算成整數：";
-                        resDiv.style.color = "#1565c0"; step = 2; return;
-                    } else { isCorrect = (document.getElementById('finalOne').value === "1"); }
+                    if (step === 1) { document.getElementById('extraOneArea').style.display = 'flex'; resDiv.innerText = "數值正確！最後請換算成整數："; resDiv.style.color = "#1565c0"; step = 2; return; } 
+                    else { isCorrect = (document.getElementById('finalOne').value === "1"); }
                 } else { isCorrect = true; }
             }
-        } else {
-            isCorrect = (document.getElementById('userIn').value === currentAns.val);
+        }
+        else if (currentTopicType === "fraction_p4") {
+            let uW = parseInt(document.getElementById('p4w').value || 0), uN = parseInt(document.getElementById('p4n').value || 0), uD = parseInt(document.getElementById('p4d').value || 1);
+            if (uN !== 0 && getGCD(uN, uD) !== 1) { isNotSimplified = true; isCorrect = false; }
+            else { isCorrect = (uW === currentAns.w && uN === currentAns.n && (uN === 0 || uD === currentAns.d)); }
+        }
+        else {
+            isCorrect = (parseFloat(document.getElementById('userIn').value) === parseFloat(currentAns.val));
         }
 
         if (isCorrect) {
@@ -326,15 +354,19 @@
             document.getElementById('checkBtn').style.display = 'none';
             document.getElementById('nextBtn').style.display = 'block';
         } else {
+            if (isNotSimplified) {
+                resDiv.innerText = "❌ 數值正確，但必須約簡至「最簡分數」！";
+                resDiv.style.color = "orange";
+                return;
+            }
             attempt++;
             if (attempt === 1) {
                 resDiv.innerText = "❌ 再試一次！"; resDiv.style.color = "orange";
-                document.getElementById('hintText').innerText = hintData[topic] || "細心一點喔！記得運算順序。";
+                document.getElementById('hintText').innerText = hintData[topic] || "細心一點喔！檢查運算步驟。";
                 document.getElementById('hintBox').style.display = 'block';
             } else {
-                let ansStr = currentAns.val || (currentAns.q ? `${currentAns.q} 餘 ${currentAns.r}` : currentAns.isOne ? "1" : `${currentAns.n}/${currentAns.d}`);
-                if(currentAns.type === 'yj') ansStr = `${currentAns.yuan}元${currentAns.jiao}角`;
-                if(currentAns.type === 'c') ansStr = `${currentAns.cents}角`;
+                let ansStr = currentAns.val || (currentAns.q !== undefined ? `${currentAns.q} 餘 ${currentAns.r}` : currentAns.isOne ? "1" : `${currentAns.n}/${currentAns.d}`);
+                if (currentTopicType === "fraction_p4") ansStr = (currentAns.w > 0 ? currentAns.w + "又" : "") + currentAns.n + "/" + currentAns.d;
                 resDiv.innerText = `❌ 正確答案是：${ansStr}`;
                 resDiv.style.color = "var(--error)";
                 document.getElementById('checkBtn').style.display = 'none';
