@@ -260,7 +260,7 @@
                 if (currentAns.isOne) {
                     if (step === 1) {
                         document.getElementById('extraOneArea').style.display = 'flex';
-                        resDiv.innerText = "數值正確！最後請換算成整數：";
+                        resDiv.innerText = "數值正確！當分子和分母相等，最後需要把答案寫成甚麼?";
                         resDiv.style.color = "#1565c0"; step = 2; return;
                     } else { isCorrect = (document.getElementById('finalOne').value === "1"); }
                 } else { isCorrect = true; }
